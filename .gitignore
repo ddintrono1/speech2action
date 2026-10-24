@@ -1,1 +1,9 @@
 .env
+
+volume/models/
+!volume/models/.gitkeep
+
+TODO.md
+
+# editor n shi
+.vscode
