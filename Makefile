@@ -54,9 +54,10 @@ CURL_MODELS := \
 .PHONY: \
  build shell run kill \
  test-llama serve-llama \
- serve-llama-Qwen3.5-0.8B-Q4_K_M serve-llama-Qwen3.5-4B-Q4_0 \
- download-llama-Qwen3.5-0.8B-Q4_K_M download-llama-Qwen3.5-4B-Q4_0 \
+ serve-llama-Qwen3.5-0.8B-Q4_K_M serve-llama-Qwen3.5-4B-Q4_K_M \
+ download-llama-Qwen3.5-0.8B-Q4_K_M download-llama-Qwen3.5-4B-Q4_K_M \
  test-whisper download-whisper-ggml-base.en-q8_0 stream-whisper-ggml-base.en-q8_0
+
 
 #############################################
 # Macros
@@ -67,6 +68,7 @@ require=if [ -z "$($(1))" ]; then \
 		echo "Usage: make $@ $(1)=$(2)"; \
 		exit 1; \
 	fi
+
 
 #############################################
 # Generic targets
@@ -88,6 +90,9 @@ shell:
 run:
 	@$(call require,CMD,<shell command>);
 	@$(DOCKER_RUN) $(IMAGE) $(CMD)
+
+kill:
+	@docker kill $(CONTAINER_NAME)
 
 #############################################
 # llama.cpp
@@ -111,12 +116,20 @@ download-llama-Qwen3.5-0.8B-Q4_K_M:
 serve-llama-Qwen3.5-0.8B-Q4_K_M:
 	@$(DOCKER_RUN) $(IMAGE) $(LLAMA_SERVE) -m $(MODELS_PATH_CONT)Qwen3.5-0.8B-Q4_K_M.gguf
 
-download-llama-Qwen3.5-4B-Q4_0:
-	@$(CURL_MODELS) -o $(MODELS_PATH_CONT)Qwen3.5-4B-Q4_0.gguf \
-		"https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_0.gguf?download=true"
+download-llama-Qwen3.5-4B-Q4_K_M:
+	@$(CURL_MODELS) -o $(MODELS_PATH_CONT)Qwen3.5-4B-Q4_K_M.gguf \
+		"https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf?download=true"
 
-serve-llama-Qwen3.5-4B-Q4_0:
-	@$(DOCKER_RUN) $(IMAGE) $(LLAMA_SERVE) -m $(MODELS_PATH_CONT)Qwen3.5-4B-Q4_0.gguf
+serve-llama-Qwen3.5-4B-Q4_K_M:
+	@$(DOCKER_RUN) $(IMAGE) $(LLAMA_SERVE) -m $(MODELS_PATH_CONT)Qwen3.5-4B-Q4_K_M.gguf
+
+download-llama-functiongemma-270m-it-Q4_K_M:
+	@$(CURL_MODELS) -o $(MODELS_PATH_CONT)functiongemma-270m-it-Q4_K_M.gguf \
+		"https://huggingface.co/unsloth/functiongemma-270m-it-GGUF/resolve/main/functiongemma-270m-it-Q4_K_M.gguf?download=true"
+
+serve-llama-functiongemma-270m-it-Q4_K_M:
+	@$(DOCKER_RUN) $(IMAGE) $(LLAMA_SERVE) -m $(MODELS_PATH_CONT)functiongemma-270m-it-Q4_K_M.gguf
+
 
 #############################################
 # whisper
@@ -135,5 +148,4 @@ download-whisper-ggml-base.en-q8_0:
 stream-whisper-ggml-base.en-q8_0:
 	@$(DOCKER_RUN) $(IMAGE) $(WHISPER_STREAM) -m $(MODELS_PATH_CONT)ggml-base.en-q8_0.bin
 
-kill:
-	@docker kill $(CONTAINER_NAME)
+
