@@ -18,7 +18,7 @@ MODELS_PATH_CONT	:= /root/volume/$(MODELS_PATH_EXT)
 
 # automatically offload to RAM if VRAM is not enough
 N_VRAM ?= auto
-CONTEXT ?= 4096
+CONTEXT_LENGHT ?= 4096
 
 # docker run common flags
 DOCKER_RUN := docker run \
@@ -38,19 +38,25 @@ LLAMA_SERVE := llama-server \
 		--port $(PORT) \
 		--api-key $(API_KEY) \
 		-ngl $(N_VRAM) \
-		-c $(CONTEXT) \
+		-c $(CONTEXT_LENGHT) \
 		-np 1 -fa on
 
 WHISPER_STREAM := whisper-stream \
 	  	-t 8 \
 		--step 500 \
 		--length 5000 \
-		--vad \
-		--print-colors 
+
+CURL_MODELS := \
+	mkdir -p $(MODELS_PATH_HOST) ; \
+	$(DOCKER_RUN) $(IMAGE) curl -fL -C -
 
 
 .PHONY: \
- build test-llama test-whisper shell serve-llama serve-whisper run kill
+ build shell run kill \
+ test-llama serve-llama \
+ serve-llama-Qwen3.5-0.8B-Q4_K_M serve-llama-Qwen3.5-4B-Q4_0 \
+ download-llama-Qwen3.5-0.8B-Q4_K_M download-llama-Qwen3.5-4B-Q4_0 \
+ test-whisper download-whisper-ggml-base.en-q8_0 stream-whisper-ggml-base.en-q8_0
 
 #############################################
 # Macros
@@ -63,7 +69,7 @@ require=if [ -z "$($(1))" ]; then \
 	fi
 
 #############################################
-# Targets
+# Generic targets
 #############################################
 
 # Build container and llama.cpp
@@ -73,26 +79,8 @@ build:
 	--network host \
 	--build-arg N_JOBS=$(N_JOBS) \
 	--build-arg CUDA_ARCH=$(CUDA_ARCH) \
-    -t $(IMAGE) \
+	-t $(IMAGE) \
 	.
-
-# Test llama with a dummy model (TODO)
-test-llama:
-	@mkdir -p $(MODELS_PATH_HOST)
-	@curl -fL -C - -o $(MODELS_PATH_HOST)Qwen3.5-0.8B-Q4_K_M.gguf \
-		"https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf?download=true"
-
-download-llama-Qwen3.5-4B-Q4_0:
-	@mkdir -p $(MODELS_PATH_HOST) 
-	@curl -fL -C - -o $(MODELS_PATH_HOST)Qwen3.5-4B-Q4_0.gguf \						
-		"https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_0.gguf?download=true"
-
-# Test whisper with a dummy model
-test-whisper:
-	@mkdir -p $(MODELS_PATH_HOST)
-	@$(DOCKER_RUN) $(IMAGE) curl -fL -C - -o $(MODELS_PATH_CONT)ggml-base.en-q8_0.bin \
-		"https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en-q8_0.bin"
-	@$(DOCKER_RUN) $(IMAGE) whisper-cli -m $(MODELS_PATH_CONT)ggml-base.en-q8_0.bin -f whisper.cpp/samples/jfk.wav --print-colors
 
 shell:
 	@$(DOCKER_RUN) -it $(IMAGE) bash
@@ -101,18 +89,51 @@ run:
 	@$(call require,CMD,<shell command>);
 	@$(DOCKER_RUN) $(IMAGE) $(CMD)
 
+#############################################
+# llama.cpp
+#############################################
+
+# Test llama with a dummy model (TODO)
+test-llama:
+	@$(CURL_MODELS) -o $(MODELS_PATH_CONT)Qwen3.5-0.8B-Q4_K_M.gguf \
+		"https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf?download=true"
+	@$(DOCKER_RUN) $(IMAGE) llama-cli -m $(MODELS_PATH_CONT)Qwen3.5-0.8B-Q4_K_M.gguf \
+		-c $(CONTEXT_LENGHT) -p "Turn on the kitchen lights. Reply with a short JSON action."
+
 serve-llama:
 	@$(call require,MODEL,<model>.gguf);
 	@$(DOCKER_RUN) $(IMAGE) $(LLAMA_SERVE) -m $(MODELS_PATH_CONT)$(MODEL)
 
+download-llama-Qwen3.5-0.8B-Q4_K_M:
+	@$(CURL_MODELS) -o $(MODELS_PATH_CONT)Qwen3.5-0.8B-Q4_K_M.gguf \
+		"https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf?download=true"
+
 serve-llama-Qwen3.5-0.8B-Q4_K_M:
 	@$(DOCKER_RUN) $(IMAGE) $(LLAMA_SERVE) -m $(MODELS_PATH_CONT)Qwen3.5-0.8B-Q4_K_M.gguf
 
-serve-llama-Qwen3.5-4B-Q4_0:
-	@$(DOCKER_RUN) $(IMAGE) $(LLAMA_SERVE) -m $(MODELS_PATH_CONT)Qwen3.5-4B-Q4_0.gguf 
+download-llama-Qwen3.5-4B-Q4_0:
+	@$(CURL_MODELS) -o $(MODELS_PATH_CONT)Qwen3.5-4B-Q4_0.gguf \
+		"https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_0.gguf?download=true"
 
-serve-whisper:
+serve-llama-Qwen3.5-4B-Q4_0:
+	@$(DOCKER_RUN) $(IMAGE) $(LLAMA_SERVE) -m $(MODELS_PATH_CONT)Qwen3.5-4B-Q4_0.gguf
+
+#############################################
+# whisper
+#############################################
+
+# Test whisper with a dummy model
+test-whisper:
+	@$(CURL_MODELS) -o $(MODELS_PATH_CONT)ggml-base.en-q8_0.bin \
+		"https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en-q8_0.bin"
+	@$(DOCKER_RUN) $(IMAGE) whisper-cli -m $(MODELS_PATH_CONT)ggml-base.en-q8_0.bin -f whisper.cpp/samples/jfk.wav --print-colors
+
+download-whisper-ggml-base.en-q8_0:
+	@$(CURL_MODELS) -o $(MODELS_PATH_CONT)ggml-base.en-q8_0.bin \
+		"https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en-q8_0.bin"
+
+stream-whisper-ggml-base.en-q8_0:
 	@$(DOCKER_RUN) $(IMAGE) $(WHISPER_STREAM) -m $(MODELS_PATH_CONT)ggml-base.en-q8_0.bin
 
 kill:
-	@docker kill $(CONTAINER_NAME) 
+	@docker kill $(CONTAINER_NAME)

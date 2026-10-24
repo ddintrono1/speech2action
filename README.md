@@ -1,7 +1,9 @@
 # speech2action
-Agentic microphone below 4GB of memory.
+Agentic microphone below 4GB of memory. 
 
-Currently only supports CUDA.
+This is a reinventing-the-wheel project. It doesn't provide innovative functionalities, it is mostly a playground/exercising project.
+
+Currently only supports CUDA. Requires CUDA drivers and nvidia-container-toolkit on the host machine. Everything else is self-contained in the container.
 
 ## Setup
 1. Clone the repo
