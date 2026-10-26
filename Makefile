@@ -53,7 +53,7 @@ CURL_MODELS := \
 
 .PHONY: \
  build shell run kill \
- test-llama serve-llama \
+ test-llama serve-llama bench \
  serve-llama-Qwen3.5-0.8B-Q4_K_M serve-llama-Qwen3.5-4B-Q4_K_M \
  download-llama-Qwen3.5-0.8B-Q4_K_M download-llama-Qwen3.5-4B-Q4_K_M \
  test-whisper download-whisper-ggml-base.en-q8_0 stream-whisper-ggml-base.en-q8_0
@@ -98,7 +98,7 @@ kill:
 # llama.cpp
 #############################################
 
-# Test llama with a dummy model (TODO)
+# Test llama with a dummy model
 test-llama:
 	@$(CURL_MODELS) -o $(MODELS_PATH_CONT)Qwen3.5-0.8B-Q4_K_M.gguf \
 		"https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf?download=true"
@@ -129,6 +129,17 @@ download-llama-functiongemma-270m-it-Q4_K_M:
 
 serve-llama-functiongemma-270m-it-Q4_K_M:
 	@$(DOCKER_RUN) $(IMAGE) $(LLAMA_SERVE) -m $(MODELS_PATH_CONT)functiongemma-270m-it-Q4_K_M.gguf
+
+# Benchmark: prefill t/s, decode t/s, tok/J, temps. 
+# CMD is everything after "llama-server"
+bench:
+	@$(call require,CMD,'-m /root/volume/models/<model>.gguf ...');
+	@mkdir -p ./output/bench
+	@$(DOCKER_RUN) -v ./output:/root/output -v /etc/localtime:/etc/localtime:ro \
+		--mount type=bind,src=/sys/class/powercap/intel-rapl:1,dst=/rapl,readonly \
+		-e HOST_UID=$(shell id -u) -e HOST_GID=$(shell id -g) \
+		$(IMAGE) \
+		./bench.sh llama-server $(CMD)
 
 
 #############################################

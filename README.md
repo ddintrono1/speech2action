@@ -31,3 +31,14 @@ Use the following targets by typing ```make <target>``` from the root of the rep
 
 The available targets are:
 
+- bench 
+```make bench CMD=<what_you_would_type_after llama-server>``` 
+allows to benchmark a model, measuring:
+    - prefill t/s over a 500 tokens prompt
+    - decode t/s over 256 tokens
+    - tok/J considering the whole laptop power
+    - average power W considering the whole laptop power
+    - CPU temperature, max and idle
+    - GPU temperature, max and idle
+
+
