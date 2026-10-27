@@ -11,7 +11,7 @@ IMAGE := $(IMAGE_NAME):$(IMAGE_TAG)
 CONTAINER_NAME := s2a_container
 
 # paths
-MODELS_PATH_CONT	:= /root/volume/models
+MODELS_PATH_CONT	:= /root/volume/models/
 
 # automatically offload to RAM if VRAM is not enough
 N_VRAM ?= auto
