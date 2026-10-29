@@ -1,0 +1,6 @@
+[submodule "volume/llama.cpp"]
+	path = volume/llama.cpp
+	url = https://github.com/ggml-org/llama.cpp.git
+[submodule "volume/whisper.cpp"]
+	path = volume/whisper.cpp
+	url = git@github.com:ggml-org/whisper.cpp.git
