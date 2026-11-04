@@ -12,13 +12,13 @@ RUN apt-get update && apt-get install -y cmake
 COPY ./volume/llama.cpp /root/volume/llama.cpp
 WORKDIR /root/volume/llama.cpp
 
-# The symbolic link is required since llama.cpp searches for libcuda.so.1 at linking time
 # Tests and examples are turned off so that every install rule has a built artifact
 RUN \
  ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
  cmake -B build \
   -DGGML_CUDA=ON \
   -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
+  -DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath-link,/usr/local/cuda/lib64/stubs \
   -DLLAMA_BUILD_TESTS=OFF \
   -DLLAMA_BUILD_EXAMPLES=OFF && \
  cmake --build build --config Release -j ${N_JOBS} && \
@@ -56,5 +56,11 @@ RUN \
  apt-get update && apt-get install -y libasound2-plugins && \
  printf 'pcm.!default { type pulse }\nctl.!default { type pulse }\n' > /etc/asound.conf
 ENV SDL_AUDIODRIVER=alsa
+
+# ========================================
+# Debugging
+# ========================================
+
+RUN apt-get update && apt-get install -y gdb
 
 WORKDIR /root/volume
